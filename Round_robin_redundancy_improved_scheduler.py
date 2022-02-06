@@ -1,4 +1,18 @@
 import random
+import functools
+import time
+
+
+def timeit(func):
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        elapsed_time = time.time() - start_time
+        print('function [{}] finished in {} ms'.format(
+            func.__name__, int(elapsed_time * 1_000)))
+        return result
+    return new_func
 
 
 class Node:
@@ -6,7 +20,7 @@ class Node:
 	def __init__(self, id):
 		self.id = id  # set the given id as initialization number passed
 		self.state = 'working'  # node works by default
-		print(f"INFO: node with ID={self.id} is created")
+		# print(f"INFO: node with ID={self.id} is created")
 
 	def get_status(self):
 		if self.state == 'working':
@@ -15,19 +29,18 @@ class Node:
 			return 'dead'
 
 	def process_data(self, data):  # this function just adds the given numbers
-		print(f'LOG: NODE_ID={self.id} is processing', data)
-
-		if self.state == "dead":  # attempt repair if dead
-			self.state = 'working'  # 100% repair chance is enforced
-			print(f'NODE_ID={self.id} has been repaired')
+		# print(f'LOG: NODE_ID={self.id} is processing', data)
 
 		if random.random() < FAILURE_CHANCE:
-			print(f'ERROR:NODE_ID={self.id} has DIED')
+			# print(f'ERROR:NODE_ID={self.id} has DIED')
 			self.state = 'dead'
+			if self.state == "dead":  # attempt repair if dead
+				self.state = 'working'  # 100% repair chance is enforced
+				# print(f'NODE_ID={self.id} has been repaired')
 			return False
 		else:
 			result = sum(data)  # store and return result
-			print(f'{"LOG:":5}NODE_ID={self.id} result', result)
+			# print(f'{"LOG:":5}NODE_ID={self.id} result', result)
 			return result
 
 
@@ -38,7 +51,7 @@ def robin_scheduler(NODE_ARRAY, data):
 	result = XNODE.process_data(data)  # try processing the data
 	ROBIN_COUNTER += 1  # increment counter so that next node will be used
 	if XNODE.state == 'dead' or result is False:
-		print(f'INFO: Passing load={data} of NODE_ID={XNODE.id} to next node')
+		# print(f'INFO: Passing load={data} of NODE_ID={XNODE.id} to next node')
 		robin_scheduler(NODE_ARRAY, data)  # using recursion to repeat scheduling if node fails
 	return result
 
@@ -56,10 +69,20 @@ NODE_ARRAY_LENGTH = len(NODE_ARRAY)
 SAMPLE_DATA = [
     [random.randint(0, 100) for x in range(4)] for y in range(4)
     ]  # SAMPLE_DATA is a 2D[4x4] matrix generate random numbers from 0 to 99
-print("SAMPLE_DATA =", SAMPLE_DATA)
+#print("SAMPLE_DATA =", SAMPLE_DATA)
 
 ROBIN_COUNTER = 0
 
+
+@timeit
+def batch_process_data(times=10000):
+	for x in range(times):
+		for data in SAMPLE_DATA:
+			robin_scheduler(NODE_ARRAY, data)
+
+
 if __name__ == '__main__':
-	for data in SAMPLE_DATA:
-		robin_scheduler(NODE_ARRAY, data)
+	for x in range(25, 100, 1):
+		FAILURE_CHANCE += 0.01
+		print("FAILURE_CHANCE=", FAILURE_CHANCE)
+		batch_process_data()
